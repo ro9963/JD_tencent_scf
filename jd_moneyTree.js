@@ -37,7 +37,7 @@ if ($.isNode()) {
 }
 
 let jdNotify = true;//是否开启静默运行，默认true
-let sellFruit = false;//是否卖出金果得到金币，默认'false'
+let sellFruit = true;//是否卖出金果得到金币，默认'true'
 const JD_API_HOST = 'https://ms.jr.jd.com/gw/generic/uc/h5/m';
 let userInfo = null, taskInfo = [], message = '', subTitle = '', fruitTotal = 0;
 !(async () => {
@@ -86,7 +86,7 @@ async function jd_moneyTree() {
     const userRes = await user_info();
     if (!userRes || !userRes.realName) return
     await signEveryDay();
-    await dayWork();
+    // await dayWork();
     await harvest();
     await sell();
     await myWealth();
@@ -147,7 +147,7 @@ function user_info() {
               console.log(`其他情况::${JSON.stringify(res)}`);
             }
           } else {
-            console.log(`京豆api返回数据为空，请检查自身原因`)
+            console.log(`京东api返回数据为空，请检查自身原因`)
           }
         }
       } catch (eor) {
@@ -670,7 +670,7 @@ async function friendRank() {
             data = JSON.parse(data);
             $.friendRankList = data.resultData.data;
           } else {
-            console.log(`京豆api返回数据为空，请检查自身原因`)
+            console.log(`京东api返回数据为空，请检查自身原因`)
           }
         }
       } catch (eor) {
@@ -719,7 +719,7 @@ async function friendTreeRoom(friendPin) {
             data = JSON.parse(data);
             $.friendTree = data.resultData.data;
           } else {
-            console.log(`京豆api返回数据为空，请检查自身原因`)
+            console.log(`京东api返回数据为空，请检查自身原因`)
           }
         }
       } catch (eor) {
@@ -768,7 +768,7 @@ async function stealFruit(friendPin, stoleId) {
           if (data) {
             data = JSON.parse(data);
           } else {
-            console.log(`京豆api返回数据为空，请检查自身原因`)
+            console.log(`京东api返回数据为空，请检查自身原因`)
           }
         }
       } catch (eor) {
@@ -794,7 +794,7 @@ async function request(function_id, body = {}) {
           if (data) {
             data = JSON.parse(data);
           } else {
-            console.log(`京豆api返回数据为空，请检查自身原因`)
+            console.log(`京东api返回数据为空，请检查自身原因`)
           }
         }
       } catch (eor) {
@@ -828,45 +828,47 @@ function taskurl(function_id, body) {
 function TotalBean() {
   return new Promise(async resolve => {
     const options = {
-      url: "https://me-api.jd.com/user_new/info/GetJDUserInfoUnion",
-      headers: {
-        Host: "me-api.jd.com",
-        Accept: "*/*",
-        Connection: "keep-alive",
-        Cookie: cookie,
-        "User-Agent": $.isNode() ? (process.env.JD_USER_AGENT ? process.env.JD_USER_AGENT : (require('./USER_AGENTS').USER_AGENT)) : ($.getdata('JDUA') ? $.getdata('JDUA') : "jdapp;iPhone;9.4.4;14.3;network/4g;Mozilla/5.0 (iPhone; CPU iPhone OS 14_3 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148;supportJDSHWK/1"),
+      "url": `https://wq.jd.com/user/info/QueryJDUserInfo?sceneval=2`,
+      "headers": {
+        "Accept": "application/json,text/plain, */*",
+        "Content-Type": "application/x-www-form-urlencoded",
+        "Accept-Encoding": "gzip, deflate, br",
         "Accept-Language": "zh-cn",
-        "Referer": "https://home.m.jd.com/myJd/newhome.action?sceneval=2&ufc=&",
-        "Accept-Encoding": "gzip, deflate, br"
+        "Connection": "keep-alive",
+        "Cookie": cookie,
+        "Referer": "https://wqs.jd.com/my/jingdou/my.shtml?sceneval=2",
+        "User-Agent": $.isNode() ? (process.env.JD_USER_AGENT ? process.env.JD_USER_AGENT : (require('./USER_AGENTS').USER_AGENT)) : ($.getdata('JDUA') ? $.getdata('JDUA') : "jdapp;iPhone;9.4.4;14.3;network/4g;Mozilla/5.0 (iPhone; CPU iPhone OS 14_3 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148;supportJDSHWK/1")
       }
     }
-    $.get(options, (err, resp, data) => {
+    $.post(options, (err, resp, data) => {
       try {
         if (err) {
-          $.logErr(err)
+          console.log(`${JSON.stringify(err)}`)
+          console.log(`${$.name} API请求失败，请检查网路重试`)
         } else {
           if (data) {
             data = JSON.parse(data);
-            if (data['retcode'] === "1001") {
+            if (data['retcode'] === 13) {
               $.isLogin = false; //cookie过期
-              return;
+              return
             }
-            if (data['retcode'] === "0" && data.data && data.data.hasOwnProperty("userInfo")) {
-              $.nickName = data.data.userInfo.baseInfo.nickname;
+            if (data['retcode'] === 0) {
+              $.nickName = (data['base'] && data['base'].nickname) || $.UserName;
+            } else {
+              $.nickName = $.UserName
             }
           } else {
-            $.log('京东服务器返回空数据');
+            console.log(`京东服务器返回空数据`)
           }
         }
       } catch (e) {
-        $.logErr(e)
+        $.logErr(e, resp)
       } finally {
         resolve();
       }
     })
   })
 }
-
 
 function jsonParse(str) {
   if (typeof str == "string") {
